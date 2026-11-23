@@ -982,32 +982,32 @@
       </div>
 
       <div class="shop-note">
-        ⭐ Оплата проходит через Telegram Stars (валюта <code>XTR</code>). Когда подключишь бэкенд бота, впиши адрес сервера в <code>INVOICE_API_URL</code>.
+        ⭐ Покупка работает только через оплату звёздами Telegram (<code>XTR</code>). Без подключённого бота/сервера попытки не выдаются.
       </div>
 
       <div class="shop-grid">
         <div class="shop-card">
           <div class="shop-pack-count">+1 попытка</div>
           <div class="shop-pack-sub" id="shop-curr-1">Колесо фортуны</div>
-          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(1, 50)">50 ⭐</button>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(1, 1)">1 ⭐</button>
         </div>
 
         <div class="shop-card">
           <div class="shop-pack-count">+10 попыток</div>
           <div class="shop-pack-sub" id="shop-curr-10">Колесо фортуны</div>
-          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(10, 500)">500 ⭐</button>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(10, 5)">5 ⭐</button>
         </div>
 
         <div class="shop-card">
           <div class="shop-pack-count">+50 попыток</div>
           <div class="shop-pack-sub" id="shop-curr-50">Колесо фортуны</div>
-          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(50, 2500)">2500 ⭐</button>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(50, 25)">25 ⭐</button>
         </div>
 
         <div class="shop-card">
           <div class="shop-pack-count">+100 попыток</div>
           <div class="shop-pack-sub" id="shop-curr-100">Колесо фортуны</div>
-          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(100, 5000)">5000 ⭐</button>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(100, 50)">50 ⭐</button>
         </div>
       </div>
     </section>
@@ -1057,7 +1057,7 @@
     // ==========================================
     // НАСТРОЙКА ОПЛАТЫ ЧЕРЕЗ TELEGRAM STARS (XTR)
     // ==========================================
-    // Когда поднимешь сервер для бота, укажи сюда URL эндпоинта создания инвойса, например:
+    // Укажи сюда URL сервера бота для создания инвойса, например:
     // const INVOICE_API_URL = 'https://твой-сервер.ru/api/create-stars-invoice';
     const INVOICE_API_URL = '';
 
@@ -1076,7 +1076,7 @@
     // Константы
     const MAX_ATTEMPTS = 5;
     const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-    const STORAGE_KEY = 'tg_minigames_save_v3';
+    const STORAGE_KEY = 'tg_minigames_save_v4';
     const BORDER_PRICE = 500;
 
     const AVATARS = ['😎', '🦊', '🐯', '🐼', '🤖', '👾', '🐉', '🦄', '🔥', '⚡'];
@@ -1272,54 +1272,47 @@
       if (isPurchasingStars) return;
       const targetGame = selectedShopGame;
 
-      // Если бэкенд для создания инвойса XTR уже подключён
-      if (INVOICE_API_URL) {
-        if (!tg || typeof tg.openInvoice !== 'function') {
-          showToast('⚠️ Открой игру внутри Telegram для оплаты звёздами');
-          return;
-        }
-        setShopButtonsDisabled(true);
-        try {
-          const res = await fetch(INVOICE_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              game: targetGame,
-              attempts: count,
-              stars: starsPrice,
-              initData: tg.initData || ''
-            })
-          });
-          const data = await res.json();
-          if (!data.invoice_link) {
-            throw new Error(data.error || 'Не удалось создать счёт');
-          }
-
-          tg.openInvoice(data.invoice_link, (status) => {
-            setShopButtonsDisabled(false);
-            if (status === 'paid') {
-              grantAttempts(targetGame, count);
-              showToast(`⭐ Оплачено! +${count} попыток (${gameLabels[targetGame]})`);
-            } else if (status === 'cancelled') {
-              showToast('Оплата отменена');
-            } else {
-              showToast('⚠️ Оплата не завершена');
-            }
-          });
-        } catch (err) {
-          setShopButtonsDisabled(false);
-          showToast('❌ Ошибка создания счёта звёзд');
-        }
+      if (!INVOICE_API_URL) {
+        showToast('🔒 Подключи бота/сервер (INVOICE_API_URL) для оплаты звёздами');
         return;
       }
 
-      // Тестовый режим до подключения сервера бота
-      const ok = confirm(
-        `Тест покупки за звёзды:\n+${count} попыток для «${gameLabels[targetGame]}» за ${starsPrice} ⭐.\nНачислить попытки сейчас?`
-      );
-      if (ok) {
-        grantAttempts(targetGame, count);
-        showToast(`⭐ +${count} попыток начислено (${gameLabels[targetGame]})`);
+      if (!tg || typeof tg.openInvoice !== 'function') {
+        showToast('⚠️ Открой игру внутри Telegram для оплаты звёздами');
+        return;
+      }
+
+      setShopButtonsDisabled(true);
+      try {
+        const res = await fetch(INVOICE_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game: targetGame,
+            attempts: count,
+            stars: starsPrice,
+            initData: tg.initData || ''
+          })
+        });
+        const data = await res.json();
+        if (!data.invoice_link) {
+          throw new Error(data.error || 'Не удалось создать счёт');
+        }
+
+        tg.openInvoice(data.invoice_link, (status) => {
+          setShopButtonsDisabled(false);
+          if (status === 'paid') {
+            grantAttempts(targetGame, count);
+            showToast(`⭐ Оплачено! +${count} попыток (${gameLabels[targetGame]})`);
+          } else if (status === 'cancelled') {
+            showToast('Оплата отменена');
+          } else {
+            showToast('⚠️ Оплата не завершена');
+          }
+        });
+      } catch (err) {
+        setShopButtonsDisabled(false);
+        showToast('❌ Ошибка создания счёта звёзд');
       }
     }
 
