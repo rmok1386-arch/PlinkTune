@@ -481,12 +481,12 @@
       transform: scale(0.96);
     }
 
-    /* 4. МАГАЗИН */
+    /* 4. МАГАЗИН ЗА ЗВЁЗДЫ */
     .shop-game-selector {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .shop-game-btn {
@@ -505,6 +505,17 @@
       background: rgba(99, 102, 241, 0.2);
       border-color: var(--accent);
       color: #fff;
+    }
+
+    .shop-note {
+      background: rgba(251, 191, 36, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #fde68a;
+      margin-bottom: 14px;
+      line-height: 1.4;
     }
 
     .shop-grid {
@@ -541,21 +552,27 @@
       color: var(--muted);
     }
 
-    .buy-btn {
+    .buy-stars-btn {
       width: 100%;
       padding: 10px;
       border: none;
       border-radius: 12px;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
       color: #1e1300;
       font-weight: 800;
       font-size: 13px;
       cursor: pointer;
+      box-shadow: 0 4px 14px rgba(251, 191, 36, 0.28);
       transition: transform 0.15s ease, opacity 0.2s ease;
     }
 
-    .buy-btn:active {
+    .buy-stars-btn:active {
       transform: scale(0.95);
+    }
+
+    .buy-stars-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* 5. ПРОФИЛЬ */
@@ -845,7 +862,7 @@
               <p>От 10 до 50 монет + шанс на доп. попытку</p>
             </div>
           </div>
-          <div class="game-status" id="card-status-wheel">5 / 5</div>
+          <div class="game-status" id="card-status-wheel">5 поп.</div>
         </div>
 
         <div class="game-card" onclick="openGame('plinko')">
@@ -856,7 +873,7 @@
               <p>Бросай шарик и лови множитель до 2x</p>
             </div>
           </div>
-          <div class="game-status" id="card-status-plinko">5 / 5</div>
+          <div class="game-status" id="card-status-plinko">5 поп.</div>
         </div>
 
         <div class="game-card" onclick="openGame('coin')">
@@ -867,7 +884,7 @@
               <p>Угадай сторону и забери 50 монет</p>
             </div>
           </div>
-          <div class="game-status" id="card-status-coin">5 / 5</div>
+          <div class="game-status" id="card-status-coin">5 поп.</div>
         </div>
       </div>
     </section>
@@ -953,10 +970,10 @@
       </div>
     </section>
 
-    <!-- ВКЛАДКА 2: МАГАЗИН -->
+    <!-- ВКЛАДКА 2: МАГАЗИН ЗА ЗВЁЗДЫ -->
     <section class="screen" id="screen-shop">
-      <h1 class="hero-title">Магазин</h1>
-      <p class="hero-sub">Выбери игру и докупи попытки за монеты</p>
+      <h1 class="hero-title">Магазин звёзд</h1>
+      <p class="hero-sub">Выбери игру и докупи попытки за Telegram Stars</p>
 
       <div class="shop-game-selector">
         <button class="shop-game-btn active" id="shop-target-wheel" onclick="selectShopGame('wheel')">🎡 Колесо</button>
@@ -964,29 +981,33 @@
         <button class="shop-game-btn" id="shop-target-coin" onclick="selectShopGame('coin')">🪙 Монетка</button>
       </div>
 
+      <div class="shop-note">
+        ⭐ Оплата проходит через Telegram Stars (валюта <code>XTR</code>). Когда подключишь бэкенд бота, впиши адрес сервера в <code>INVOICE_API_URL</code>.
+      </div>
+
       <div class="shop-grid">
         <div class="shop-card">
           <div class="shop-pack-count">+1 попытка</div>
-          <div class="shop-pack-sub" id="shop-curr-1">Для выбранной игры</div>
-          <button class="buy-btn" onclick="buyAttempts(1, 50)">50 🪙</button>
+          <div class="shop-pack-sub" id="shop-curr-1">Колесо фортуны</div>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(1, 50)">50 ⭐</button>
         </div>
 
         <div class="shop-card">
           <div class="shop-pack-count">+10 попыток</div>
-          <div class="shop-pack-sub" id="shop-curr-10">Для выбранной игры</div>
-          <button class="buy-btn" onclick="buyAttempts(10, 500)">500 🪙</button>
+          <div class="shop-pack-sub" id="shop-curr-10">Колесо фортуны</div>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(10, 500)">500 ⭐</button>
         </div>
 
         <div class="shop-card">
           <div class="shop-pack-count">+50 попыток</div>
-          <div class="shop-pack-sub" id="shop-curr-50">Для выбранной игры</div>
-          <button class="buy-btn" onclick="buyAttempts(50, 2500)">2500 🪙</button>
+          <div class="shop-pack-sub" id="shop-curr-50">Колесо фортуны</div>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(50, 2500)">2500 ⭐</button>
         </div>
 
         <div class="shop-card">
           <div class="shop-pack-count">+100 попыток</div>
-          <div class="shop-pack-sub" id="shop-curr-100">Для выбранной игры</div>
-          <button class="buy-btn" onclick="buyAttempts(100, 5000)">5000 🪙</button>
+          <div class="shop-pack-sub" id="shop-curr-100">Колесо фортуны</div>
+          <button class="buy-stars-btn" onclick="buyAttemptsWithStars(100, 5000)">5000 ⭐</button>
         </div>
       </div>
     </section>
@@ -1023,7 +1044,7 @@
       <span>Игры</span>
     </button>
     <button class="nav-tab" id="nav-shop" onclick="openTab('shop')">
-      <span class="nav-icon">🛒</span>
+      <span class="nav-icon">⭐</span>
       <span>Магазин</span>
     </button>
     <button class="nav-tab" id="nav-profile" onclick="openTab('profile')">
@@ -1033,6 +1054,13 @@
   </nav>
 
   <script>
+    // ==========================================
+    // НАСТРОЙКА ОПЛАТЫ ЧЕРЕЗ TELEGRAM STARS (XTR)
+    // ==========================================
+    // Когда поднимешь сервер для бота, укажи сюда URL эндпоинта создания инвойса, например:
+    // const INVOICE_API_URL = 'https://твой-сервер.ru/api/create-stars-invoice';
+    const INVOICE_API_URL = '';
+
     // Инициализация Telegram WebApp
     const tg = window.Telegram && window.Telegram.WebApp;
     let tgDefaultName = 'Игрок';
@@ -1048,7 +1076,7 @@
     // Константы
     const MAX_ATTEMPTS = 5;
     const COOLDOWN_MS = 24 * 60 * 60 * 1000;
-    const STORAGE_KEY = 'tg_minigames_save_v2';
+    const STORAGE_KEY = 'tg_minigames_save_v3';
     const BORDER_PRICE = 500;
 
     const AVATARS = ['😎', '🦊', '🐯', '🐼', '🤖', '👾', '🐉', '🦄', '🔥', '⚡'];
@@ -1078,6 +1106,7 @@
 
     let state = loadState();
     let selectedShopGame = 'wheel';
+    let isPurchasingStars = false;
 
     function loadState() {
       try {
@@ -1134,6 +1163,14 @@
       }
     }
 
+    function grantAttempts(gameKey, count) {
+      const g = state.games[gameKey];
+      g.attempts += count;
+      g.resetAt = null;
+      saveState();
+      updateAllUI();
+    }
+
     function addCoins(amount) {
       state.coins += amount;
       saveState();
@@ -1163,7 +1200,7 @@
       t.textContent = text;
       t.classList.add('show');
       clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => t.classList.remove('show'), 2600);
+      toastTimeout = setTimeout(() => t.classList.remove('show'), 2800);
     }
 
     function formatTime(ms) {
@@ -1204,7 +1241,7 @@
     }
 
     // ==========================================
-    // МАГАЗИН ПОПЫТОК
+    // МАГАЗИН ЗА ЗВЁЗДЫ (TELEGRAM STARS / XTR)
     // ==========================================
     const gameLabels = {
       wheel: 'Колесо фортуны',
@@ -1224,17 +1261,66 @@
       document.getElementById('shop-curr-100').textContent = label;
     }
 
-    function buyAttempts(count, price) {
-      if (!spendCoins(price)) {
-        showToast('❌ Недостаточно монет!');
+    function setShopButtonsDisabled(disabled) {
+      isPurchasingStars = disabled;
+      document.querySelectorAll('.buy-stars-btn').forEach(btn => {
+        btn.disabled = disabled;
+      });
+    }
+
+    async function buyAttemptsWithStars(count, starsPrice) {
+      if (isPurchasingStars) return;
+      const targetGame = selectedShopGame;
+
+      // Если бэкенд для создания инвойса XTR уже подключён
+      if (INVOICE_API_URL) {
+        if (!tg || typeof tg.openInvoice !== 'function') {
+          showToast('⚠️ Открой игру внутри Telegram для оплаты звёздами');
+          return;
+        }
+        setShopButtonsDisabled(true);
+        try {
+          const res = await fetch(INVOICE_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: targetGame,
+              attempts: count,
+              stars: starsPrice,
+              initData: tg.initData || ''
+            })
+          });
+          const data = await res.json();
+          if (!data.invoice_link) {
+            throw new Error(data.error || 'Не удалось создать счёт');
+          }
+
+          tg.openInvoice(data.invoice_link, (status) => {
+            setShopButtonsDisabled(false);
+            if (status === 'paid') {
+              grantAttempts(targetGame, count);
+              showToast(`⭐ Оплачено! +${count} попыток (${gameLabels[targetGame]})`);
+            } else if (status === 'cancelled') {
+              showToast('Оплата отменена');
+            } else {
+              showToast('⚠️ Оплата не завершена');
+            }
+          });
+        } catch (err) {
+          setShopButtonsDisabled(false);
+          showToast('❌ Ошибка создания счёта звёзд');
+        }
         return;
       }
-      const g = state.games[selectedShopGame];
-      g.attempts += count;
-      g.resetAt = null;
-      saveState();
-      showToast(`✅ Куплено +${count} попыток (${gameLabels[selectedShopGame]})!`);
-      updateAllUI();
+
+      // Тестовый режим до подключения сервера бота
+      const ok = confirm(
+        `Тест покупки за звёзды:\n+${count} попыток для «${gameLabels[targetGame]}» за ${starsPrice} ⭐.\nНачислить попытки сейчас?`
+      );
+      if (ok) {
+        grantAttempts(targetGame, count);
+        showToast(`⭐ +${count} попыток начислено (${gameLabels[targetGame]})`);
+      }
     }
 
     // ==========================================
