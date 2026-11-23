@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mini Games — Fortune, Plinko, Coin</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #151c2f;
+      --card-hover: #1c2640;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --gold: #fbbf24;
+      --gold-glow: rgba(251, 191, 36, 0.35);
+      --accent: #6366f1;
+      --accent-2: #8b5cf6;
+      --green: #10b981;
+      --red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+      background: radial-gradient(circle at top, #172038 0%, var(--bg) 65%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Верхняя панель */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      min-width: 0;
+    }
+
+    .user-badge span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 150px;
+    }
+
+    .avatar-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      flex-shrink: 0;
+      transition: all 0.25s ease;
+    }
+
+    /* Варианты обводок */
+    .ring-none {
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      box-shadow: none;
+    }
+    .ring-gold {
+      border: 3px solid #fbbf24;
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.65);
+    }
+    .ring-neon {
+      border: 3px solid #38bdf8;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.75);
+    }
+    .ring-emerald {
+      border: 3px solid #10b981;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.75);
+    }
+    .ring-fire {
+      border: 3px solid #f97316;
+      box-shadow: 0 0 14px rgba(249, 115, 22, 0.8);
+    }
+
+    .balance-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(251, 191, 36, 0.14);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      color: var(--gold);
+      font-size: 15px;
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.15);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .balance-pill.pop {
+      transform: scale(1.12);
+    }
+
+    /* Контейнер экранов */
+    .container {
+      flex: 1;
+      padding: 18px 16px 92px;
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .screen {
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.28s ease, transform 0.28s ease;
+    }
+
+    .screen.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Заголовки и кнопки назад */
+    .screen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .back-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+
+    .back-btn:active {
+      transform: scale(0.95);
+    }
+
+    .attempts-badge {
+      background: rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #c7d2fe;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .hero-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      background: linear-gradient(90deg, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    /* Вкладка Игры */
+    .games-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .game-card {
+      background: linear-gradient(145deg, #172036, #111726);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-card:hover {
+      border-color: rgba(139, 92, 246, 0.45);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    }
+
+    .game-card:active {
+      transform: scale(0.97);
+    }
+
+    .game-card-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .game-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .icon-wheel { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35); }
+    .icon-plinko { background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35); }
+    .icon-coin { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35); }
+
+    .game-info h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .game-info p {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .game-status {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Общие кнопки действий и таймер */
+    .primary-btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(99, 102, 241, 0.4);
+      transition: transform 0.15s ease, opacity 0.2s ease, filter 0.2s ease;
+    }
+
+    .primary-btn:active {
+      transform: scale(0.96);
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      filter: grayscale(0.4);
+    }
+
+    .cooldown-box {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      text-align: center;
+    }
+
+    .cooldown-box.visible {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .cooldown-title {
+      font-size: 13px;
+      color: #fca5a5;
+      margin-bottom: 4px;
+    }
+
+    .cooldown-timer {
+      font-size: 20px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+    }
+
+    /* 1. КОЛЕСО ФОРТУНЫ */
+    .wheel-wrapper {
+      position: relative;
+      width: 310px;
+      height: 310px;
+      margin: 10px auto 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .wheel-pointer {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 28px solid #fbbf24;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+      z-index: 10;
+    }
+
+    #wheelCanvas {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      box-shadow: 0 0 35px rgba(251, 191, 36, 0.22), inset 0 0 15px rgba(0,0,0,0.5);
+    }
+
+    /* 2. ПЛИНКО */
+    .plinko-wrapper {
+      background: #101625;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #plinkoCanvas {
+      width: 100%;
+      max-width: 340px;
+      height: 340px;
+      display: block;
+    }
+
+    .plinko-slots {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      width: 100%;
+      max-width: 340px;
+      margin-top: 6px;
+    }
+
+    .slot-box {
+      text-align: center;
+      padding: 7px 2px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .slot-box.hit {
+      transform: scale(1.18) translateY(-3px);
+      filter: brightness(1.3);
+    }
+
+    .slot-2x { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+    .slot-15x { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; }
+    .slot-1x { background: #1e293b; color: #cbd5e1; }
+    .slot-05x { background: #151c2c; color: #64748b; }
+
+    /* 3. ОРЕЛ И РЕШКА */
+    .coin-stage {
+      perspective: 1000px;
+      width: 160px;
+      height: 160px;
+      margin: 24px auto 28px;
+    }
+
+    .coin {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 2.2s cubic-bezier(0.17, 0.88, 0.32, 1.05);
+    }
+
+    .coin-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      border: 6px solid #fcd34d;
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.35), inset 0 0 18px rgba(180, 83, 9, 0.6);
+    }
+
+    .coin-heads {
+      background: radial-gradient(circle at 30% 30%, #fde68a, #f59e0b 65%, #b45309);
+      color: #451a03;
+    }
+
+    .coin-tails {
+      background: radial-gradient(circle at 30% 30%, #e2e8f0, #94a3b8 65%, #475569);
+      border-color: #cbd5e1;
+      color: #0f172a;
+      transform: rotateY(180deg);
+    }
+
+    .coin-emoji {
+      font-size: 48px;
+      margin-bottom: 4px;
+    }
+
+    .choice-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .choice-btn {
+      padding: 14px;
+      border-radius: 16px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .choice-btn.selected {
+      border-color: var(--gold);
+      background: rgba(251, 191, 36, 0.14);
+      color: var(--gold);
+      transform: translateY(-2px);
+    }
+
+    .choice-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* 4. МАГАЗИН */
+    .shop-game-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .shop-game-btn {
+      padding: 10px 8px;
+      border-radius: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .shop-game-btn.active {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .shop-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .shop-card {
+      background: linear-gradient(145deg, #172036, #111726);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+      transition: transform 0.18s ease, border-color 0.2s ease;
+    }
+
+    .shop-card:active {
+      transform: scale(0.97);
+    }
+
+    .shop-pack-count {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .shop-pack-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .buy-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #1e1300;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.2s ease;
+    }
+
+    .buy-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* 5. ПРОФИЛЬ */
+    .profile-preview-card {
+      background: linear-gradient(145deg, #172036, #111726);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .profile-big-avatar {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      font-weight: 800;
+      transition: all 0.25s ease;
+    }
+
+    .profile-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #e2e8f0;
+    }
+
+    .name-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .name-input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .name-input:focus {
+      border-color: var(--accent);
+    }
+
+    .save-name-btn {
+      padding: 0 18px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .save-name-btn:active {
+      transform: scale(0.95);
+    }
+
+    .avatars-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .avatar-option {
+      aspect-ratio: 1;
+      border-radius: 16px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .avatar-option:active {
+      transform: scale(0.92);
+    }
+
+    .avatar-option.selected {
+      border-color: var(--gold);
+      background: rgba(251, 191, 36, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .borders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .border-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: border-color 0.2s ease;
+    }
+
+    .border-item.equipped {
+      border-color: var(--green);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .border-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .border-sample {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .border-action-btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 11px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.15s ease;
+    }
+
+    .border-action-btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-buy-border {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #1e1300;
+    }
+
+    .btn-equip {
+      background: rgba(99, 102, 241, 0.22);
+      color: #c7d2fe;
+      border: 1px solid rgba(99, 102, 241, 0.45);
+    }
+
+    .btn-equipped {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      cursor: default;
+    }
+
+    /* Нижняя панель навигации */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 10px 14px 16px;
+      z-index: 30;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .nav-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 8px 6px;
+      border-radius: 14px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .nav-tab span.nav-icon {
+      font-size: 18px;
+    }
+
+    .nav-tab.active {
+      background: rgba(99, 102, 241, 0.18);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #fff;
+    }
+
+    .nav-tab:active {
+      transform: scale(0.95);
+    }
+
+    /* Всплывающее уведомление */
+    .toast {
+      position: fixed;
+      top: 74px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--gold);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 50;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Верхняя панель -->
+  <div class="topbar">
+    <div class="user-badge">
+      <div class="avatar-circle ring-none" id="topAvatar">😎</div>
+      <span id="topUserName">Игрок</span>
+    </div>
+    <div class="balance-pill" id="balancePill">
+      <span>🪙</span>
+      <span id="coinBalance">0</span>
+    </div>
+  </div>
+
+  <!-- Всплывающее уведомление -->
+  <div class="toast" id="toast"></div>
+
+  <div class="container">
+
+    <!-- ВКЛАДКА 1: ИГРЫ -->
+    <section class="screen active" id="screen-games">
+      <h1 class="hero-title">Игры</h1>
+      <p class="hero-sub">Выбирай режим, трать попытки и собирай монеты</p>
+
+      <div class="games-list">
+        <div class="game-card" onclick="openGame('wheel')">
+          <div class="game-card-left">
+            <div class="game-icon icon-wheel">🎡</div>
+            <div class="game-info">
+              <h3>Колесо фортуны</h3>
+              <p>От 10 до 50 монет + шанс на доп. попытку</p>
+            </div>
+          </div>
+          <div class="game-status" id="card-status-wheel">5 / 5</div>
+        </div>
+
+        <div class="game-card" onclick="openGame('plinko')">
+          <div class="game-card-left">
+            <div class="game-icon icon-plinko">🔮</div>
+            <div class="game-info">
+              <h3>Плинко</h3>
+              <p>Бросай шарик и лови множитель до 2x</p>
+            </div>
+          </div>
+          <div class="game-status" id="card-status-plinko">5 / 5</div>
+        </div>
+
+        <div class="game-card" onclick="openGame('coin')">
+          <div class="game-card-left">
+            <div class="game-icon icon-coin">🪙</div>
+            <div class="game-info">
+              <h3>Орёл и решка</h3>
+              <p>Угадай сторону и забери 50 монет</p>
+            </div>
+          </div>
+          <div class="game-status" id="card-status-coin">5 / 5</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ИГРА 1: КОЛЕСО ФОРТУНЫ -->
+    <section class="screen" id="screen-wheel">
+      <div class="screen-header">
+        <button class="back-btn" onclick="openTab('games')">← Назад</button>
+        <div class="attempts-badge" id="wheelAttemptsBadge">Попыток: 5</div>
+      </div>
+
+      <div class="wheel-wrapper">
+        <div class="wheel-pointer"></div>
+        <canvas id="wheelCanvas" width="320" height="320"></canvas>
+      </div>
+
+      <button class="primary-btn" id="spinBtn" onclick="spinWheel()">Крутить колесо</button>
+
+      <div class="cooldown-box" id="wheelCooldownBox">
+        <div class="cooldown-title">Попытки закончились. Новые через:</div>
+        <div class="cooldown-timer" id="wheelTimer">24:00:00</div>
+      </div>
+    </section>
+
+    <!-- ИГРА 2: ПЛИНКО -->
+    <section class="screen" id="screen-plinko">
+      <div class="screen-header">
+        <button class="back-btn" onclick="openTab('games')">← Назад</button>
+        <div class="attempts-badge" id="plinkoAttemptsBadge">Попыток: 5</div>
+      </div>
+
+      <div class="plinko-wrapper">
+        <canvas id="plinkoCanvas" width="340" height="340"></canvas>
+        <div class="plinko-slots" id="plinkoSlots">
+          <div class="slot-box slot-2x" data-mult="2">2x</div>
+          <div class="slot-box slot-15x" data-mult="1.5">1.5x</div>
+          <div class="slot-box slot-1x" data-mult="1">1x</div>
+          <div class="slot-box slot-05x" data-mult="0.5">0.5x</div>
+          <div class="slot-box slot-1x" data-mult="1">1x</div>
+          <div class="slot-box slot-15x" data-mult="1.5">1.5x</div>
+          <div class="slot-box slot-2x" data-mult="2">2x</div>
+        </div>
+      </div>
+
+      <button class="primary-btn" id="dropBallBtn" onclick="dropPlinkoBall()">Запустить шарик (база 25 🪙)</button>
+
+      <div class="cooldown-box" id="plinkoCooldownBox">
+        <div class="cooldown-title">Попытки закончились. Новые через:</div>
+        <div class="cooldown-timer" id="plinkoTimer">24:00:00</div>
+      </div>
+    </section>
+
+    <!-- ИГРА 3: ОРЕЛ И РЕШКА -->
+    <section class="screen" id="screen-coin">
+      <div class="screen-header">
+        <button class="back-btn" onclick="openTab('games')">← Назад</button>
+        <div class="attempts-badge" id="coinAttemptsBadge">Попыток: 5</div>
+      </div>
+
+      <div class="coin-stage">
+        <div class="coin" id="coinElement">
+          <div class="coin-face coin-heads">
+            <div class="coin-emoji">🦅</div>
+            <div>ОРЁЛ</div>
+          </div>
+          <div class="coin-face coin-tails">
+            <div class="coin-emoji">👑</div>
+            <div>РЕШКА</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="choice-row">
+        <button class="choice-btn selected" id="chooseHeads" onclick="selectCoinSide('heads')">🦅 Орёл</button>
+        <button class="choice-btn" id="chooseTails" onclick="selectCoinSide('tails')">👑 Решка</button>
+      </div>
+
+      <button class="primary-btn" id="flipCoinBtn" onclick="flipCoin()">Подбросить монетку (приз 50 🪙)</button>
+
+      <div class="cooldown-box" id="coinCooldownBox">
+        <div class="cooldown-title">Попытки закончились. Новые через:</div>
+        <div class="cooldown-timer" id="coinTimer">24:00:00</div>
+      </div>
+    </section>
+
+    <!-- ВКЛАДКА 2: МАГАЗИН -->
+    <section class="screen" id="screen-shop">
+      <h1 class="hero-title">Магазин</h1>
+      <p class="hero-sub">Выбери игру и докупи попытки за монеты</p>
+
+      <div class="shop-game-selector">
+        <button class="shop-game-btn active" id="shop-target-wheel" onclick="selectShopGame('wheel')">🎡 Колесо</button>
+        <button class="shop-game-btn" id="shop-target-plinko" onclick="selectShopGame('plinko')">🔮 Плинко</button>
+        <button class="shop-game-btn" id="shop-target-coin" onclick="selectShopGame('coin')">🪙 Монетка</button>
+      </div>
+
+      <div class="shop-grid">
+        <div class="shop-card">
+          <div class="shop-pack-count">+1 попытка</div>
+          <div class="shop-pack-sub" id="shop-curr-1">Для выбранной игры</div>
+          <button class="buy-btn" onclick="buyAttempts(1, 50)">50 🪙</button>
+        </div>
+
+        <div class="shop-card">
+          <div class="shop-pack-count">+10 попыток</div>
+          <div class="shop-pack-sub" id="shop-curr-10">Для выбранной игры</div>
+          <button class="buy-btn" onclick="buyAttempts(10, 500)">500 🪙</button>
+        </div>
+
+        <div class="shop-card">
+          <div class="shop-pack-count">+50 попыток</div>
+          <div class="shop-pack-sub" id="shop-curr-50">Для выбранной игры</div>
+          <button class="buy-btn" onclick="buyAttempts(50, 2500)">2500 🪙</button>
+        </div>
+
+        <div class="shop-card">
+          <div class="shop-pack-count">+100 попыток</div>
+          <div class="shop-pack-sub" id="shop-curr-100">Для выбранной игры</div>
+          <button class="buy-btn" onclick="buyAttempts(100, 5000)">5000 🪙</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ВКЛАДКА 3: ПРОФИЛЬ -->
+    <section class="screen" id="screen-profile">
+      <h1 class="hero-title">Профиль</h1>
+      <p class="hero-sub">Настрой имя, аватарку и обводку</p>
+
+      <div class="profile-preview-card">
+        <div class="profile-big-avatar ring-none" id="profileBigAvatar">😎</div>
+        <div style="font-size: 18px; font-weight: 800;" id="profilePreviewName">Игрок</div>
+      </div>
+
+      <div class="profile-section-title">Имя игрока</div>
+      <div class="name-row">
+        <input type="text" class="name-input" id="nameInput" maxlength="20" placeholder="Введите новое имя..." />
+        <button class="save-name-btn" onclick="saveProfileName()">Сохранить</button>
+      </div>
+
+      <div class="profile-section-title">Аватарка</div>
+      <div class="avatars-grid" id="avatarsGrid"></div>
+
+      <div class="profile-section-title">Обводки вокруг аватарки</div>
+      <div class="borders-list" id="bordersList"></div>
+    </section>
+
+  </div>
+
+  <!-- Нижняя навигация: Игры, Магазин, Профиль -->
+  <nav class="bottom-nav">
+    <button class="nav-tab active" id="nav-games" onclick="openTab('games')">
+      <span class="nav-icon">🎮</span>
+      <span>Игры</span>
+    </button>
+    <button class="nav-tab" id="nav-shop" onclick="openTab('shop')">
+      <span class="nav-icon">🛒</span>
+      <span>Магазин</span>
+    </button>
+    <button class="nav-tab" id="nav-profile" onclick="openTab('profile')">
+      <span class="nav-icon">👤</span>
+      <span>Профиль</span>
+    </button>
+  </nav>
+
+  <script>
+    // Инициализация Telegram WebApp
+    const tg = window.Telegram && window.Telegram.WebApp;
+    let tgDefaultName = 'Игрок';
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
+      if (user && user.first_name) {
+        tgDefaultName = user.first_name;
+      }
+    }
+
+    // Константы
+    const MAX_ATTEMPTS = 5;
+    const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+    const STORAGE_KEY = 'tg_minigames_save_v2';
+    const BORDER_PRICE = 500;
+
+    const AVATARS = ['😎', '🦊', '🐯', '🐼', '🤖', '👾', '🐉', '🦄', '🔥', '⚡'];
+
+    const BORDERS = [
+      { id: 'none', name: 'Базовая', ringClass: 'ring-none', price: 0, icon: '⚪' },
+      { id: 'gold', name: 'Золотая корона', ringClass: 'ring-gold', price: BORDER_PRICE, icon: '🟡' },
+      { id: 'neon', name: 'Неоновый лёд', ringClass: 'ring-neon', price: BORDER_PRICE, icon: '🔵' },
+      { id: 'emerald', name: 'Изумрудная', ringClass: 'ring-emerald', price: BORDER_PRICE, icon: '🟢' },
+      { id: 'fire', name: 'Огненная', ringClass: 'ring-fire', price: BORDER_PRICE, icon: '🟠' }
+    ];
+
+    const defaultState = {
+      coins: 0,
+      profile: {
+        name: tgDefaultName,
+        avatar: '😎',
+        equippedBorder: 'none',
+        unlockedBorders: ['none']
+      },
+      games: {
+        wheel: { attempts: MAX_ATTEMPTS, resetAt: null },
+        plinko: { attempts: MAX_ATTEMPTS, resetAt: null },
+        coin: { attempts: MAX_ATTEMPTS, resetAt: null }
+      }
+    };
+
+    let state = loadState();
+    let selectedShopGame = 'wheel';
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return JSON.parse(JSON.stringify(defaultState));
+        const p = JSON.parse(raw);
+        return {
+          coins: typeof p.coins === 'number' ? p.coins : 0,
+          profile: {
+            name: p.profile?.name || tgDefaultName,
+            avatar: p.profile?.avatar || '😎',
+            equippedBorder: p.profile?.equippedBorder || 'none',
+            unlockedBorders: Array.isArray(p.profile?.unlockedBorders) && p.profile.unlockedBorders.length
+              ? p.profile.unlockedBorders
+              : ['none']
+          },
+          games: {
+            wheel: p.games?.wheel || { attempts: MAX_ATTEMPTS, resetAt: null },
+            plinko: p.games?.plinko || { attempts: MAX_ATTEMPTS, resetAt: null },
+            coin: p.games?.coin || { attempts: MAX_ATTEMPTS, resetAt: null }
+          }
+        };
+      } catch (e) {
+        return JSON.parse(JSON.stringify(defaultState));
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function checkCooldowns() {
+      const now = Date.now();
+      let changed = false;
+      ['wheel', 'plinko', 'coin'].forEach(key => {
+        const g = state.games[key];
+        if (g.resetAt && now >= g.resetAt) {
+          g.attempts = MAX_ATTEMPTS;
+          g.resetAt = null;
+          changed = true;
+        }
+      });
+      if (changed) saveState();
+    }
+
+    function consumeAttempt(gameKey) {
+      const g = state.games[gameKey];
+      if (g.attempts > 0) {
+        g.attempts -= 1;
+        if (g.attempts === 0 && !g.resetAt) {
+          g.resetAt = Date.now() + COOLDOWN_MS;
+        }
+        saveState();
+      }
+    }
+
+    function addCoins(amount) {
+      state.coins += amount;
+      saveState();
+      animateBalance();
+    }
+
+    function spendCoins(amount) {
+      if (state.coins < amount) return false;
+      state.coins -= amount;
+      saveState();
+      animateBalance();
+      return true;
+    }
+
+    function animateBalance() {
+      const el = document.getElementById('coinBalance');
+      const pill = document.getElementById('balancePill');
+      el.textContent = state.coins;
+      pill.classList.remove('pop');
+      void pill.offsetWidth;
+      pill.classList.add('pop');
+    }
+
+    let toastTimeout;
+    function showToast(text) {
+      const t = document.getElementById('toast');
+      t.textContent = text;
+      t.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function formatTime(ms) {
+      if (!ms || ms <= 0) return '00:00:00';
+      const totalSec = Math.floor(ms / 1000);
+      const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+      const s = String(totalSec % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    // Навигация
+    function openTab(tabName) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(`screen-${tabName}`);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+      const navBtn = document.getElementById(`nav-${tabName}`);
+      if (navBtn) navBtn.classList.add('active');
+
+      if (tabName === 'profile') {
+        document.getElementById('nameInput').value = state.profile.name;
+        renderProfileControls();
+      }
+      updateAllUI();
+    }
+
+    function openGame(gameKey) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(`screen-${gameKey}`).classList.add('active');
+      document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('nav-games').classList.add('active');
+
+      if (gameKey === 'wheel') drawWheel();
+      if (gameKey === 'plinko') drawPlinkoBoard();
+      updateAllUI();
+    }
+
+    // ==========================================
+    // МАГАЗИН ПОПЫТОК
+    // ==========================================
+    const gameLabels = {
+      wheel: 'Колесо фортуны',
+      plinko: 'Плинко',
+      coin: 'Орёл и решка'
+    };
+
+    function selectShopGame(gameKey) {
+      selectedShopGame = gameKey;
+      ['wheel', 'plinko', 'coin'].forEach(k => {
+        document.getElementById(`shop-target-${k}`).classList.toggle('active', k === gameKey);
+      });
+      const label = gameLabels[gameKey];
+      document.getElementById('shop-curr-1').textContent = label;
+      document.getElementById('shop-curr-10').textContent = label;
+      document.getElementById('shop-curr-50').textContent = label;
+      document.getElementById('shop-curr-100').textContent = label;
+    }
+
+    function buyAttempts(count, price) {
+      if (!spendCoins(price)) {
+        showToast('❌ Недостаточно монет!');
+        return;
+      }
+      const g = state.games[selectedShopGame];
+      g.attempts += count;
+      g.resetAt = null;
+      saveState();
+      showToast(`✅ Куплено +${count} попыток (${gameLabels[selectedShopGame]})!`);
+      updateAllUI();
+    }
+
+    // ==========================================
+    // ПРОФИЛЬ: ИМЯ, АВАТАРКИ, ОБВОДКИ
+    // ==========================================
+    function getBorderClass(borderId) {
+      const found = BORDERS.find(b => b.id === borderId);
+      return found ? found.ringClass : 'ring-none';
+    }
+
+    function saveProfileName() {
+      const input = document.getElementById('nameInput');
+      const cleanName = input.value.trim();
+      if (!cleanName) {
+        showToast('⚠️ Имя не может быть пустым');
+        return;
+      }
+      state.profile.name = cleanName;
+      saveState();
+      renderProfileUI();
+      showToast('✅ Имя сохранено!');
+    }
+
+    function selectAvatar(emoji) {
+      state.profile.avatar = emoji;
+      saveState();
+      renderProfileUI();
+      renderProfileControls();
+      showToast('✅ Аватарка обновлена!');
+    }
+
+    function handleBorderAction(borderId, price) {
+      const unlocked = state.profile.unlockedBorders.includes(borderId);
+      if (!unlocked) {
+        if (!spendCoins(price)) {
+          showToast('❌ Нужно 500 🪙 для покупки обводки');
+          return;
+        }
+        state.profile.unlockedBorders.push(borderId);
+        state.profile.equippedBorder = borderId;
+        saveState();
+        renderProfileUI();
+        renderProfileControls();
+        showToast('✨ Обводка куплена и надета!');
+      } else {
+        state.profile.equippedBorder = borderId;
+        saveState();
+        renderProfileUI();
+        renderProfileControls();
+        showToast('✅ Обводка надета!');
+      }
+    }
+
+    function renderProfileUI() {
+      const ringClass = getBorderClass(state.profile.equippedBorder);
+      const topAv = document.getElementById('topAvatar');
+      topAv.textContent = state.profile.avatar;
+      topAv.className = `avatar-circle ${ringClass}`;
+
+      document.getElementById('topUserName').textContent = state.profile.name;
+
+      const bigAv = document.getElementById('profileBigAvatar');
+      bigAv.textContent = state.profile.avatar;
+      bigAv.className = `profile-big-avatar ${ringClass}`;
+
+      document.getElementById('profilePreviewName').textContent = state.profile.name;
+    }
+
+    function renderProfileControls() {
+      const grid = document.getElementById('avatarsGrid');
+      grid.innerHTML = '';
+      AVATARS.forEach(emoji => {
+        const btn = document.createElement('div');
+        btn.className = 'avatar-option' + (state.profile.avatar === emoji ? ' selected' : '');
+        btn.textContent = emoji;
+        btn.onclick = () => selectAvatar(emoji);
+        grid.appendChild(btn);
+      });
+
+      const list = document.getElementById('bordersList');
+      list.innerHTML = '';
+      BORDERS.forEach(b => {
+        const isUnlocked = state.profile.unlockedBorders.includes(b.id);
+        const isEquipped = state.profile.equippedBorder === b.id;
+
+        const row = document.createElement('div');
+        row.className = 'border-item' + (isEquipped ? ' equipped' : '');
+
+        const left = document.createElement('div');
+        left.className = 'border-item-left';
+
+        const sample = document.createElement('div');
+        sample.className = `border-sample ${b.ringClass}`;
+        sample.textContent = b.icon;
+
+        const info = document.createElement('div');
+        info.innerHTML = `<div style="font-weight:700;font-size:14px;">${b.name}</div>
+          <div style="font-size:12px;color:var(--muted);">${b.price === 0 ? 'Бесплатно' : b.price + ' 🪙'}</div>`;
+
+        left.appendChild(sample);
+        left.appendChild(info);
+
+        const actionBtn = document.createElement('button');
+        if (isEquipped) {
+          actionBtn.className = 'border-action-btn btn-equipped';
+          actionBtn.textContent = 'Надета';
+        } else if (isUnlocked) {
+          actionBtn.className = 'border-action-btn btn-equip';
+          actionBtn.textContent = 'Надеть';
+          actionBtn.onclick = () => handleBorderAction(b.id, b.price);
+        } else {
+          actionBtn.className = 'border-action-btn btn-buy-border';
+          actionBtn.textContent = `Купить · ${b.price} 🪙`;
+          actionBtn.onclick = () => handleBorderAction(b.id, b.price);
+        }
+
+        row.appendChild(left);
+        row.appendChild(actionBtn);
+        list.appendChild(row);
+      });
+    }
+
+    // ==========================================
+    // 1. КОЛЕСО ФОРТУНЫ
+    // ==========================================
+    const wheelSectors = [
+      { label: '10 🪙', value: 10, type: 'coins', weight: 24, color: '#3b82f6' },
+      { label: '20 🪙', value: 20, type: 'coins', weight: 22, color: '#8b5cf6' },
+      { label: '15 🪙', value: 15, type: 'coins', weight: 22, color: '#10b981' },
+      { label: '35 🪙', value: 35, type: 'coins', weight: 14, color: '#f59e0b' },
+      { label: '1 попытка', value: 1, type: 'attempt', weight: 6, color: '#ec4899' },
+      { label: '25 🪙', value: 25, type: 'coins', weight: 18, color: '#6366f1' },
+      { label: '50 🪙', value: 50, type: 'coins', weight: 10, color: '#ef4444' }
+    ];
+
+    const totalWheelWeight = wheelSectors.reduce((acc, s) => acc + s.weight, 0);
+    let currentWheelAngle = 0;
+    let isSpinning = false;
+
+    function drawWheel() {
+      const canvas = document.getElementById('wheelCanvas');
+      const ctx = canvas.getContext('2d');
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = cx - 14;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#fbbf24';
+      ctx.stroke();
+
+      let startAngle = currentWheelAngle;
+
+      wheelSectors.forEach((sec) => {
+        const sliceAngle = (sec.weight / totalWheelWeight) * Math.PI * 2;
+        const endAngle = startAngle + sliceAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = sec.color;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = sec.type === 'attempt' ? 'bold 11px sans-serif' : 'bold 14px sans-serif';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(sec.label, radius - 16, 4);
+        ctx.restore();
+
+        startAngle = endAngle;
+      });
+
+      const bulbs = 16;
+      for (let i = 0; i < bulbs; i++) {
+        const a = (i / bulbs) * Math.PI * 2;
+        const bx = cx + Math.cos(a) * (radius + 5);
+        const by = cy + Math.sin(a) * (radius + 5);
+        ctx.beginPath();
+        ctx.arc(bx, by, 3, 0, Math.PI * 2);
+        ctx.fillStyle = i % 2 === 0 ? '#fef08a' : '#f59e0b';
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#fbbf24';
+      ctx.stroke();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', cx, cy + 5);
+    }
+
+    function spinWheel() {
+      checkCooldowns();
+      const g = state.games.wheel;
+      if (isSpinning || g.attempts <= 0) return;
+
+      isSpinning = true;
+      consumeAttempt('wheel');
+      updateAllUI();
+
+      const extraSpins = 6 * Math.PI * 2;
+      const randomOffset = Math.random() * Math.PI * 2;
+      const startAngle = currentWheelAngle;
+      const targetAngle = startAngle + extraSpins + randomOffset;
+      const duration = 4200;
+      const startTime = performance.now();
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 4);
+        currentWheelAngle = startAngle + (targetAngle - startAngle) * ease;
+        drawWheel();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          currentWheelAngle = currentWheelAngle % (Math.PI * 2);
+          isSpinning = false;
+          resolveWheelPrize();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function resolveWheelPrize() {
+      const pointerAngle = (1.5 * Math.PI - currentWheelAngle + Math.PI * 4) % (Math.PI * 2);
+      let accAngle = 0;
+      let wonSector = wheelSectors[0];
+
+      for (const sec of wheelSectors) {
+        const sliceAngle = (sec.weight / totalWheelWeight) * Math.PI * 2;
+        if (pointerAngle >= accAngle && pointerAngle < accAngle + sliceAngle) {
+          wonSector = sec;
+          break;
+        }
+        accAngle += sliceAngle;
+      }
+
+      if (wonSector.type === 'attempt') {
+        state.games.wheel.attempts += 1;
+        state.games.wheel.resetAt = null;
+        saveState();
+        showToast('🎉 Выпала +1 дополнительная попытка!');
+      } else {
+        addCoins(wonSector.value);
+        showToast(`🎡 Вы выиграли +${wonSector.value} монет!`);
+      }
+
+      updateAllUI();
+    }
+
+    // ==========================================
+    // 2. ПЛИНКО (максимум 2x)
+    // ==========================================
+    const plinkoMultipliers = [2, 1.5, 1, 0.5, 1, 1.5, 2];
+    const PLINKO_BASE_REWARD = 25;
+    let plinkoBalls = [];
+    let pegFlashes = {};
+    let plinkoAnimRunning = false;
+
+    const rows = 7;
+    const pegs = [];
+
+    function initPlinkoPegs() {
+      pegs.length = 0;
+      const width = 340;
+      const startY = 48;
+      const rowSpacing = 38;
+      const colSpacing = 42;
+
+      for (let r = 0; r < rows; r++) {
+        const count = r + 3;
+        const rowWidth = (count - 1) * colSpacing;
+        const startX = (width - rowWidth) / 2;
+        for (let c = 0; c < count; c++) {
+          pegs.push({
+            id: `${r}-${c}`,
+            x: startX + c * colSpacing,
+            y: startY + r * rowSpacing,
+            radius: 4.5
+          });
+        }
+      }
+    }
+    initPlinkoPegs();
+
+    function drawPlinkoBoard() {
+      const canvas = document.getElementById('plinkoCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const now = performance.now();
+      pegs.forEach(p => {
+        const flashTime = pegFlashes[p.id] || 0;
+        const isFlashing = now - flashTime < 220;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, isFlashing ? p.radius + 2.5 : p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = isFlashing ? '#fbbf24' : '#94a3b8';
+        if (isFlashing) {
+          ctx.shadowColor = '#fbbf24';
+          ctx.shadowBlur = 12;
+        } else {
+          ctx.shadowBlur = 0;
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      plinkoBalls.forEach(b => {
+        b.trail.forEach((pt, idx) => {
+          const alpha = (idx + 1) / b.trail.length * 0.35;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, b.radius * 0.75, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(139, 92, 246, ${alpha})`;
+          ctx.fill();
+        });
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(b.x - 2, b.y - 2, 1, b.x, b.y, b.radius);
+        grad.addColorStop(0, '#fef08a');
+        grad.addColorStop(1, '#f59e0b');
+        ctx.fillStyle = grad;
+        ctx.shadowColor = 'rgba(245, 158, 11, 0.7)';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+    }
+
+    function dropPlinkoBall() {
+      checkCooldowns();
+      const g = state.games.plinko;
+      if (g.attempts <= 0 || plinkoBalls.length > 0) return;
+
+      consumeAttempt('plinko');
+      updateAllUI();
+
+      const startX = 170 + (Math.random() - 0.5) * 18;
+      plinkoBalls.push({
+        x: startX,
+        y: 16,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: 0,
+        radius: 7.5,
+        trail: []
+      });
+
+      if (!plinkoAnimRunning) {
+        plinkoAnimRunning = true;
+        requestAnimationFrame(updatePlinkoPhysics);
+      }
+    }
+
+    function updatePlinkoPhysics() {
+      const gravity = 0.24;
+      const bounce = 0.52;
+      const width = 340;
+      const bottomY = 324;
+
+      for (let i = plinkoBalls.length - 1; i >= 0; i--) {
+        const b = plinkoBalls[i];
+        b.trail.push({ x: b.x, y: b.y });
+        if (b.trail.length > 8) b.trail.shift();
+
+        b.vy += gravity;
+        b.x += b.vx;
+        b.y += b.vy;
+
+        if (b.x < 16) { b.x = 16; b.vx = Math.abs(b.vx) * 0.7; }
+        if (b.x > width - 16) { b.x = width - 16; b.vx = -Math.abs(b.vx) * 0.7; }
+
+        for (const p of pegs) {
+          const dx = b.x - p.x;
+          const dy = b.y - p.y;
+          const dist = Math.hypot(dx, dy);
+          const minDist = b.radius + p.radius;
+
+          if (dist < minDist && dist > 0) {
+            const nx = dx / dist;
+            const ny = dy / dist;
+            b.x = p.x + nx * minDist;
+            b.y = p.y + ny * minDist;
+
+            const dot = b.vx * nx + b.vy * ny;
+            b.vx = (b.vx - 2 * dot * nx) * bounce + (Math.random() - 0.5) * 1.35;
+            b.vy = Math.abs((b.vy - 2 * dot * ny) * bounce);
+
+            pegFlashes[p.id] = performance.now();
+          }
+        }
+
+        if (b.y >= bottomY) {
+          const slotWidth = width / plinkoMultipliers.length;
+          let slotIndex = Math.floor(b.x / slotWidth);
+          slotIndex = Math.max(0, Math.min(plinkoMultipliers.length - 1, slotIndex));
+
+          const mult = plinkoMultipliers[slotIndex];
+          const winCoins = Math.round(PLINKO_BASE_REWARD * mult);
+
+          const slotEls = document.querySelectorAll('#plinkoSlots .slot-box');
+          if (slotEls[slotIndex]) {
+            slotEls[slotIndex].classList.add('hit');
+            setTimeout(() => slotEls[slotIndex].classList.remove('hit'), 450);
+          }
+
+          addCoins(winCoins);
+          showToast(`🔮 Множитель ${mult}x! Вы выиграли +${winCoins} монет`);
+          plinkoBalls.splice(i, 1);
+          updateAllUI();
+        }
+      }
+
+      drawPlinkoBoard();
+
+      if (plinkoBalls.length > 0 || Object.keys(pegFlashes).length > 0) {
+        const now = performance.now();
+        for (const id in pegFlashes) {
+          if (now - pegFlashes[id] > 250) delete pegFlashes[id];
+        }
+        requestAnimationFrame(updatePlinkoPhysics);
+      } else {
+        plinkoAnimRunning = false;
+      }
+    }
+
+    // ==========================================
+    // 3. ОРЕЛ И РЕШКА (максимум 50 монет)
+    // ==========================================
+    let selectedSide = 'heads';
+    let coinRotationY = 0;
+    let isFlipping = false;
+
+    function selectCoinSide(side) {
+      if (isFlipping) return;
+      selectedSide = side;
+      document.getElementById('chooseHeads').classList.toggle('selected', side === 'heads');
+      document.getElementById('chooseTails').classList.toggle('selected', side === 'tails');
+    }
+
+    function flipCoin() {
+      checkCooldowns();
+      const g = state.games.coin;
+      if (isFlipping || g.attempts <= 0) return;
+
+      isFlipping = true;
+      consumeAttempt('coin');
+      updateAllUI();
+
+      const outcome = Math.random() < 0.5 ? 'heads' : 'tails';
+      const baseSpins = 1800;
+      const currentMod = coinRotationY % 360;
+      const targetMod = outcome === 'heads' ? 0 : 180;
+      const delta = (targetMod - currentMod + 360) % 360;
+
+      coinRotationY += baseSpins + delta;
+
+      const coinEl = document.getElementById('coinElement');
+      coinEl.style.transform = `rotateY(${coinRotationY}deg)`;
+
+      setTimeout(() => {
+        isFlipping = false;
+        const outcomeName = outcome === 'heads' ? 'Орёл' : 'Решка';
+        if (outcome === selectedSide) {
+          addCoins(50);
+          showToast(`🪙 Выпал ${outcomeName}! Победа: +50 монет!`);
+        } else {
+          showToast(`😔 Выпал ${outcomeName}. Не угадал!`);
+        }
+        updateAllUI();
+      }, 2250);
+    }
+
+    // ==========================================
+    // ОБНОВЛЕНИЕ ИНТЕРФЕЙСА И ТАЙМЕРОВ
+    // ==========================================
+    function updateAllUI() {
+      checkCooldowns();
+      document.getElementById('coinBalance').textContent = state.coins;
+      renderProfileUI();
+
+      const now = Date.now();
+
+      const w = state.games.wheel;
+      document.getElementById('card-status-wheel').textContent =
+        w.attempts > 0 ? `${w.attempts} поп.` : formatTime(w.resetAt - now);
+      document.getElementById('wheelAttemptsBadge').textContent = `Попыток: ${w.attempts}`;
+      document.getElementById('spinBtn').disabled = w.attempts <= 0 || isSpinning;
+      const wBox = document.getElementById('wheelCooldownBox');
+      if (w.attempts <= 0 && w.resetAt) {
+        wBox.classList.add('visible');
+        document.getElementById('wheelTimer').textContent = formatTime(w.resetAt - now);
+      } else {
+        wBox.classList.remove('visible');
+      }
+
+      const p = state.games.plinko;
+      document.getElementById('card-status-plinko').textContent =
+        p.attempts > 0 ? `${p.attempts} поп.` : formatTime(p.resetAt - now);
+      document.getElementById('plinkoAttemptsBadge').textContent = `Попыток: ${p.attempts}`;
+      document.getElementById('dropBallBtn').disabled = p.attempts <= 0 || plinkoBalls.length > 0;
+      const pBox = document.getElementById('plinkoCooldownBox');
+      if (p.attempts <= 0 && p.resetAt) {
+        pBox.classList.add('visible');
+        document.getElementById('plinkoTimer').textContent = formatTime(p.resetAt - now);
+      } else {
+        pBox.classList.remove('visible');
+      }
+
+      const c = state.games.coin;
+      document.getElementById('card-status-coin').textContent =
+        c.attempts > 0 ? `${c.attempts} поп.` : formatTime(c.resetAt - now);
+      document.getElementById('coinAttemptsBadge').textContent = `Попыток: ${c.attempts}`;
+      document.getElementById('flipCoinBtn').disabled = c.attempts <= 0 || isFlipping;
+      const cBox = document.getElementById('coinCooldownBox');
+      if (c.attempts <= 0 && c.resetAt) {
+        cBox.classList.add('visible');
+        document.getElementById('coinTimer').textContent = formatTime(c.resetAt - now);
+      } else {
+        cBox.classList.remove('visible');
+      }
+    }
+
+    setInterval(updateAllUI, 1000);
+
+    selectShopGame('wheel');
+    renderProfileControls();
+    updateAllUI();
+    drawWheel();
+    drawPlinkoBoard();
+  </script>
+</body>
+</html>
